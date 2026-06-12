@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<HTML>
+  <HEAD>
+    <META http-equiv="Content-Language" content="en-us">
+    <META http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <TITLE>Phar Lap P3 EXP Loader</TITLE>
+    <LINK rel="stylesheet" type="text/css" href="help/shared/DefaultStyle.css">
+  </HEAD>
+
+  <BODY>
+    <H1><a name="HelpAnchor"></a>Phar Lap P3 EXP Loader</H1>
+
+    <P>
+      The Phar Lap P3 EXP Loader imports flat-model 32-bit x86 P3
+      <CODE>.EXP</CODE> executables used by Phar Lap DOS extenders, including
+      Free386.
+    </P>
+
+    <P>
+      The loader recognizes files with a <CODE>P3</CODE> signature and a flat
+      model field set to <CODE>1</CODE>. Accepted files are loaded with the
+      <CODE>x86:LE:32:default</CODE> language, with Borland C++ offered as the
+      preferred compiler specification.
+    </P>
+
+    <P>
+      During import, the loader preserves the executable's encoded load
+      addresses, including zero-based images. It creates memory blocks from the
+      segment table when one is present, or reconstructs a flat image, stack,
+      and heap layout from the P3 header fields.
+    </P>
+
+    <P>
+      Packed P3 images are decompressed during import. Runtime parameters,
+      stack calculations, heap sizing, entry point information, and detected
+      relocation or symbol tables are reported in the import log.
+    </P>
+  </BODY>
+</HTML>

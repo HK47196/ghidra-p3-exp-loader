@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+
+<tocroot>
+	<tocref id="Ghidra Functionality">
+		<tocdef id="PharLapP3ExpLoader" text="Phar Lap P3 EXP Loader" target="help/topics/exp_loader/help.html" />
+	</tocref>
+</tocroot>
