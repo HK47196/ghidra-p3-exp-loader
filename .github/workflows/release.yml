@@ -1,0 +1,87 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event_name != 'push' || !github.event.deleted
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GHIDRA_VERSION: '12.2'
+      GHIDRA_ARCHIVE: ghidra_12.2_PUBLIC_20261016.zip
+      GHIDRA_SHA256: 2c2cd776db3c1f6a097ba418922378ac3649cadd5e844a6f5f088ae628a7be67
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: Download Ghidra
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$RUNNER_TEMP/$GHIDRA_ARCHIVE" \
+            "https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${GHIDRA_VERSION}_build/$GHIDRA_ARCHIVE"
+          printf '%s  %s\n' "$GHIDRA_SHA256" "$RUNNER_TEMP/$GHIDRA_ARCHIVE" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/$GHIDRA_ARCHIVE" -d "$RUNNER_TEMP/ghidra"
+          echo "GHIDRA_INSTALL_DIR=$RUNNER_TEMP/ghidra/ghidra_${GHIDRA_VERSION}_PUBLIC" >> "$GITHUB_ENV"
+
+      - name: Build extension
+        env:
+          BUILD_REF: ${{ github.ref_name }}
+        run: |
+          ./gradlew --no-daemon clean build distributeExtension --stacktrace
+          ref_name="${BUILD_REF//\//-}"
+          mv dist/*.zip "dist/ghidra_${GHIDRA_VERSION}_PUBLIC_${ref_name}_ghidra-p3-exp-loader.zip"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: extension
+          path: dist/*.zip
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: extension
+          path: dist
+
+      - name: Publish release ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/*.zip --clobber
+          else
+            release_flags=()
+            if [[ "${RELEASE_TAG%%+*}" == *-* ]]; then
+              release_flags+=(--prerelease)
+            fi
+            gh release create "$RELEASE_TAG" dist/*.zip --verify-tag \
+              --title "$RELEASE_TAG" --generate-notes "${release_flags[@]}"
+          fi
