@@ -42,6 +42,8 @@ The loader offers `x86:LE:32:default` with these compiler specs:
 
 ## Build
 
+For Ghidra 12.2, set `JAVA_HOME` to JDK 25 and use the included Gradle 9.1.0 wrapper.
+
 Set `GHIDRA_INSTALL_DIR` to your Ghidra installation:
 
 ```bash
